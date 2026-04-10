@@ -11,7 +11,7 @@ def test_match():
     if templ is None:
         pytest.fail("should be able to load shop image")
 
-    covenant = cv2.imread(os.path.join("assets", "covenant.png"))
+    covenant = cv2.imread(os.path.join("assets", "covenant-full.png"))
     if covenant is None:
         pytest.fail("should be able to load covenant image")
 

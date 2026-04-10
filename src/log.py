@@ -42,8 +42,9 @@ class LogEntry:
 
 
 class Logger:
-    def __init__(self):
+    def __init__(self, size=5):
         self.__entries: list[LogEntry] = []
+        self.__size = size
 
     def __del__(self):
         self.flush()
@@ -51,24 +52,32 @@ class Logger:
     def debug(self, msg: str) -> None:
         now = dt.datetime.now(dt.timezone.utc)
         entry = LogEntry(level=LogLevel.DEBUG, time=now, msg=msg)
-        self.__entries.append(entry)
+        self.log(entry)
 
     def info(self, msg: str) -> None:
         now = dt.datetime.now(dt.timezone.utc)
         entry = LogEntry(level=LogLevel.INFO, time=now, msg=msg)
-        self.__entries.append(entry)
+        self.log(entry)
 
     def warn(self, msg: str) -> None:
         now = dt.datetime.now(dt.timezone.utc)
         entry = LogEntry(level=LogLevel.WARN, time=now, msg=msg)
-        self.__entries.append(entry)
+        self.log(entry)
 
     def error(self, msg: str) -> None:
         now = dt.datetime.now(dt.timezone.utc)
         entry = LogEntry(level=LogLevel.ERROR, time=now, msg=msg)
+        self.log(entry)
+
+    def log(self, entry: LogEntry) -> None:
         self.__entries.append(entry)
+        if len(self.__entries) >= self.__size:
+            self.flush()
 
     def flush(self) -> None:
+        if len(self.__entries) == 0:
+            return
+
         messages: list[str] = []
         for entry in self.__entries:
             time = entry.time.isoformat(timespec="milliseconds")
