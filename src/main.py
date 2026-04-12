@@ -66,6 +66,35 @@ class ShopItem:
         return self.__name
 
 
+class RefreshStats:
+    def __init__(self):
+        self.__iterations: int = 0
+        self.__count: dict[str, int] = {}
+
+    @property
+    def iterations(self) -> int:
+        return self.__iterations
+
+    def incr_iterations(self) -> None:
+        self.__iterations += 1
+
+    def incr_item(self, item_name: str) -> None:
+        if item_name in self.__count:
+            self.__count[item_name] += 1
+        else:
+            self.__count[item_name] = 1
+
+    def count(self, item_name: str) -> int:
+        if item_name in self.__count:
+            return self.__count[item_name]
+        return 0
+
+    def percent(self, item_name: str) -> float:
+        if self.__iterations == 0 or item_name not in self.__count:
+            return 0
+        return self.__count[item_name] / self.__iterations
+
+
 class ShopRefresher:
     def __init__(self, items: list[ShopItem], window: Window, logger: Logger):
         self.__logger = logger
@@ -73,6 +102,16 @@ class ShopRefresher:
         self.__window = window
         self.__delay_secs = 0.35
         self.__move_delay_secs = 0.25
+        self.__stats = RefreshStats()
+
+    def __del__(self) -> None:
+        iterations = self.__stats.iterations
+        self.__logger.info("Finished executing shop refresher")
+        self.__logger.info(f"Total shop refresh iterations: [{iterations}]")
+        for item in self.__items:
+            count = self.__stats.count(item.name)
+            pct = self.__stats.percent(item.name)
+            self.__logger.info(f"Stats [{item.name}]: {count}/{pct} ({pct:.2f}%)")
 
     def start(self, times: int):
         monitor = {
@@ -82,7 +121,9 @@ class ShopRefresher:
             "height": self.__window.height,
         }
         with mss() as sct:
-            while "Automatically refreshing shop":
+            for i in range(0, times):
+                self.__logger.info(f"Running shop refresh iteration [{i}]")
+                self.__stats.incr_iterations()
                 # without scroll
                 screenshot = np.array(sct.grab(monitor))
                 processor = ImageProcessor(screenshot)
@@ -93,6 +134,7 @@ class ShopRefresher:
                     else:
                         self.__logger.info(f"Found item {item.name} in screenshot")
                         self.__buy(loc)
+                        self.__stats.incr_item(item.name)
 
                 self.__scroll()
 
@@ -106,8 +148,10 @@ class ShopRefresher:
                     else:
                         self.__logger.info(f"Found item {item.name} in screenshot")
                         self.__buy(loc)
+                        self.__stats.incr_item(item.name)
 
                 self.__refresh()
+                self.__logger.info(f"Finished shop refresh iteration [{i}]")
                 # use bigger delay to wait for shop refresh animation
                 time.sleep(1.5)
 
