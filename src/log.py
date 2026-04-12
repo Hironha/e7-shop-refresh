@@ -33,6 +33,12 @@ class LogLevel(Enum):
     WARN = 3
     ERROR = 4
 
+    def __lt__(self, other: LogLevel):
+        return self.value < other.value
+
+    def __gt__(self, other: LogLevel):
+        return self.value > other.value
+
 
 class LogEntry:
     def __init__(self, level: LogLevel, time: dt.datetime, msg: str):
@@ -42,9 +48,10 @@ class LogEntry:
 
 
 class Logger:
-    def __init__(self, size=5):
+    def __init__(self, size=5, level: LogLevel | None = None):
         self.__entries: list[LogEntry] = []
         self.__size = size
+        self.__level: LogLevel | None = level
 
     def __del__(self):
         self.flush()
@@ -70,6 +77,9 @@ class Logger:
         self.log(entry)
 
     def log(self, entry: LogEntry) -> None:
+        if self.__level is None or entry.level < self.__level:
+            return
+
         self.__entries.append(entry)
         if len(self.__entries) >= self.__size:
             self.flush()
