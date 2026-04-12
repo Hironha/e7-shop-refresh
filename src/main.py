@@ -9,7 +9,7 @@ import pygetwindow as pgw
 from mss import mss
 
 from img.processor import ImageProcessor
-from log import Logger
+from log import Logger, LogLevel
 
 EPIC7_TITLES = ["Epic Seven"]
 
@@ -89,7 +89,7 @@ class RefreshStats:
             return self.__count[item_name]
         return 0
 
-    def percent(self, item_name: str) -> float:
+    def rate(self, item_name: str) -> float:
         if self.__iterations == 0 or item_name not in self.__count:
             return 0
         return self.__count[item_name] / self.__iterations
@@ -110,8 +110,10 @@ class ShopRefresher:
         self.__logger.info(f"Total shop refresh iterations: [{iterations}]")
         for item in self.__items:
             count = self.__stats.count(item.name)
-            pct = self.__stats.percent(item.name)
-            self.__logger.info(f"Stats [{item.name}]: {count}/{pct} ({pct:.2f}%)")
+            pct = self.__stats.rate(item.name) * 100
+            self.__logger.info(
+                f"Stats [{item.name}]: {count}/{iterations} ({pct:.2f}%)"
+            )
 
     def start(self, times: int):
         monitor = {
@@ -219,7 +221,7 @@ def find_epic_seven_window() -> Any:
 
 
 def main():
-    logger = Logger(size=2)
+    logger = Logger(size=2, level=LogLevel.INFO)
 
     covenant_img = cv2.imread(os.path.join("assets", "covenant.png"))
     assert covenant_img is not None, "Failed loading covenant image"
@@ -239,7 +241,7 @@ def main():
 
     window = Window(window.left, window.top, window.width, window.height)
     refresher = ShopRefresher(items, window, logger)
-    refresher.start(10)
+    refresher.start(times=1_000)
 
 
 if __name__ == "__main__":
