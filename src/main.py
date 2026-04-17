@@ -27,7 +27,7 @@ class Window:
 
     @property
     def top(self) -> int:
-        return self.__left
+        return self.__top
 
     @property
     def width(self) -> int:
@@ -36,6 +36,9 @@ class Window:
     @property
     def height(self) -> int:
         return self.__height
+
+    def to_string(self) -> str:
+        return f"w:{self.width},h:{self.height},l:{self.left},t:{self.top}"
 
 
 class GameTitle:
@@ -240,6 +243,9 @@ def main():
     time.sleep(2)
 
     window = Window(window.left, window.top, window.width, window.height)
+    logger.info(
+        f"Detected Epic Seven window with following configuration: {window.to_string()}"
+    )
     refresher = ShopRefresher(items, window, logger)
     refresher.start(times=1_000)
 
