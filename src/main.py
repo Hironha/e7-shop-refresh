@@ -170,7 +170,7 @@ class ShopRefresher:
         time.sleep(self.__delay_secs)
 
         confirm_x = self.__window.left + self.__window.width * 0.57
-        confirm_y = self.__window.top + self.__window.height * 0.70
+        confirm_y = self.__window.top + self.__window.height * 0.73
         pyautogui.moveTo(confirm_x, confirm_y, duration=self.__move_delay_secs)
         pyautogui.click(interval=0.5)
 
@@ -205,7 +205,7 @@ class ShopRefresher:
         time.sleep(self.__delay_secs)
 
         confirm_x = self.__window.left + self.__window.width * 0.56
-        confirm_y = self.__window.top + self.__window.height * 0.61
+        confirm_y = self.__window.top + self.__window.height * 0.63
         pyautogui.moveTo(confirm_x, confirm_y, duration=self.__move_delay_secs)
         pyautogui.click(interval=0.5)
 

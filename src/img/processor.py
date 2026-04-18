@@ -6,7 +6,7 @@ class ImageProcessor:
     def __init__(self, templ: MatLike):
         self.__templ = templ
 
-    def match_loc(self, target: MatLike, threshold=0.7) -> tuple[int, int] | None:
+    def match_loc(self, target: MatLike, threshold=0.675) -> tuple[int, int] | None:
         templ_gray = cv2.cvtColor(self.__templ, cv2.COLOR_BGR2GRAY)
         target_gray = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
         w, h = target_gray.shape[::-1]
