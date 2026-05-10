@@ -139,9 +139,9 @@ class ShopRefresher:
                         self.__logger.warn(f"Could not find {item.name} in screenshot")
                     else:
                         self.__logger.info(f"Found item {item.name} in screenshot")
-                        self.__buy(loc)
-                        found.append(item.name)
-                        self.__stats.incr_item(item.name)
+                        if self.__buy(loc):
+                            found.append(item.name)
+                            self.__stats.incr_item(item.name)
 
                 self.__scroll()
 
@@ -154,18 +154,21 @@ class ShopRefresher:
                         self.__logger.warn(f"Could not find {item.name} in screenshot")
                     elif item.name not in found:
                         self.__logger.info(f"Found item {item.name} in screenshot")
-                        self.__buy(loc)
-                        self.__stats.incr_item(item.name)
+                        if self.__buy(loc):
+                            self.__stats.incr_item(item.name)
 
                 self.__refresh()
                 self.__logger.info(f"Finished shop refresh iteration [{i}]")
                 # use bigger delay to wait for shop refresh animation
                 time.sleep(1.5)
 
-    def __buy(self, item_loc: tuple[int, int]) -> None:
+    def __buy(self, item_loc: tuple[int, int]) -> bool:
         _item_x, item_y = item_loc
         buy_x = self.__window.left + self.__window.width * 0.84
         buy_y = self.__window.top + item_y * 1.05
+        if not self.__is_whithin_window((round(buy_x), round(buy_y))):
+            return False
+
         pyautogui.moveTo(buy_x, buy_y, duration=self.__move_delay_secs)
         pyautogui.click(interval=0.5)
 
@@ -177,7 +180,7 @@ class ShopRefresher:
         pyautogui.click(interval=0.5)
 
         time.sleep(self.__delay_secs)
-        pass
+        return True
 
     def __scroll(self) -> None:
         self.__logger.debug("Starting to scroll shop until the end")
@@ -213,6 +216,14 @@ class ShopRefresher:
 
         time.sleep(self.__delay_secs)
         self.__logger.debug("Finished refreshing shop")
+
+    def __is_whithin_window(self, loc: tuple[int, int]) -> bool:
+        x, y = loc
+        y_min = self.__window.top
+        y_max = self.__window.top + self.__window.height
+        x_min = self.__window.left
+        x_max = self.__window.left + self.__window.width
+        return x_min <= x and x <= x_max and y_min <= y and y <= y_max
 
 
 def find_epic_seven_window() -> Any:
