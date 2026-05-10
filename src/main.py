@@ -129,6 +129,7 @@ class ShopRefresher:
             for i in range(0, times):
                 self.__logger.info(f"Running shop refresh iteration [{i}]")
                 self.__stats.incr_iterations()
+                found: list[str] = []
                 # without scroll
                 screenshot = np.array(sct.grab(monitor))
                 processor = ImageProcessor(screenshot)
@@ -139,6 +140,7 @@ class ShopRefresher:
                     else:
                         self.__logger.info(f"Found item {item.name} in screenshot")
                         self.__buy(loc)
+                        found.append(item.name)
                         self.__stats.incr_item(item.name)
 
                 self.__scroll()
@@ -150,7 +152,7 @@ class ShopRefresher:
                     loc = processor.match_loc_sift(item.image)
                     if loc is None:
                         self.__logger.warn(f"Could not find {item.name} in screenshot")
-                    else:
+                    elif item.name not in found:
                         self.__logger.info(f"Found item {item.name} in screenshot")
                         self.__buy(loc)
                         self.__stats.incr_item(item.name)
