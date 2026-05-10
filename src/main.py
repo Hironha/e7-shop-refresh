@@ -133,7 +133,7 @@ class ShopRefresher:
                 screenshot = np.array(sct.grab(monitor))
                 processor = ImageProcessor(screenshot)
                 for item in self.__items:
-                    loc = processor.match_loc(item.image)
+                    loc = processor.match_loc_sift(item.image)
                     if loc is None:
                         self.__logger.warn(f"Could not find {item.name} in screenshot")
                     else:
@@ -147,7 +147,7 @@ class ShopRefresher:
                 screenshot = np.array(sct.grab(monitor))
                 processor = ImageProcessor(screenshot)
                 for item in self.__items:
-                    loc = processor.match_loc(item.image)
+                    loc = processor.match_loc_sift(item.image)
                     if loc is None:
                         self.__logger.warn(f"Could not find {item.name} in screenshot")
                     else:
