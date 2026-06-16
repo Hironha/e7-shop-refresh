@@ -165,10 +165,10 @@ class ShopRefresher:
 
     def __buy(self, item_loc: tuple[int, int]) -> bool:
         _item_x, item_y = item_loc
-        buy_x = self.__window.left + self.__window.width * 0.84
+        buy_x = self.__window.left + self.__window.width * 0.9
         buy_x = self.__rand(int(buy_x))
 
-        buy_y = self.__window.top + item_y * 1.09
+        buy_y = self.__window.top + item_y * 1.05
         buy_y = self.__rand(int(buy_y))
 
         if not self.__is_whithin_window((buy_x, buy_y)):
