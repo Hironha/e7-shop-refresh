@@ -104,8 +104,8 @@ class ShopRefresher:
         self.__logger = logger
         self.__items = items
         self.__window = window
-        self.__delay_secs = 0.35
-        self.__move_delay_secs = 0.25
+        self.__delay_secs = 0.4
+        self.__move_delay_secs = 0.3
         self.__stats = RefreshStats()
 
     def __del__(self) -> None:
@@ -161,15 +161,15 @@ class ShopRefresher:
                 self.__refresh()
                 self.__logger.info(f"Finished shop refresh iteration [{i}]")
                 # use bigger delay to wait for shop refresh animation
-                time.sleep(1.5)
+                time.sleep(self.__rand_time(1.25))
 
     def __buy(self, item_loc: tuple[int, int]) -> bool:
         _item_x, item_y = item_loc
         buy_x = self.__window.left + self.__window.width * 0.84
-        buy_x = self.__jitter(int(buy_x))
+        buy_x = self.__rand(int(buy_x))
 
         buy_y = self.__window.top + item_y * 1.09
-        buy_y = self.__jitter(int(buy_y))
+        buy_y = self.__rand(int(buy_y))
 
         if not self.__is_whithin_window((buy_x, buy_y)):
             return False
@@ -177,27 +177,27 @@ class ShopRefresher:
         pyautogui.moveTo(buy_x, buy_y, duration=self.__move_delay_secs)
         pyautogui.click(interval=0.5)
 
-        time.sleep(self.__delay_secs)
+        time.sleep(self.__rand_time(self.__delay_secs))
 
         confirm_x = self.__window.left + self.__window.width * 0.57
-        confirm_x = self.__jitter(int(confirm_x))
+        confirm_x = self.__rand(int(confirm_x))
 
         confirm_y = self.__window.top + self.__window.height * 0.73
-        confirm_y = self.__jitter(int(confirm_y))
+        confirm_y = self.__rand(int(confirm_y))
 
         pyautogui.moveTo(confirm_x, confirm_y, duration=self.__move_delay_secs)
         pyautogui.click(interval=0.5)
 
-        time.sleep(self.__delay_secs)
+        time.sleep(self.__rand_time(self.__delay_secs))
         return True
 
     def __scroll(self) -> None:
         self.__logger.debug("Starting to scroll shop until the end")
         x = self.__window.left + self.__window.width * 0.59
-        x = self.__jitter(int(x))
+        x = self.__rand(int(x))
 
         y = self.__window.top + self.__window.height * 0.51
-        y = self.__jitter(int(y))
+        y = self.__rand(int(y))
 
         pyautogui.moveTo(x, y, duration=self.__move_delay_secs)
         self.__logger.debug(f"Moved cursor to x: {x} y: {y}")
@@ -206,38 +206,38 @@ class ShopRefresher:
 
         pyautogui.mouseDown(button="left")
         scroll_y = self.__window.top + self.__window.height * 0.2
-        self.__jitter(int(scroll_y))
+        self.__rand(int(scroll_y))
 
         pyautogui.moveTo(x, scroll_y, duration=0.1)
         pyautogui.mouseUp(button="left")
 
         # wait for shop scroll animation
-        time.sleep(self.__delay_secs)
+        time.sleep(self.__rand_time(self.__delay_secs))
         self.__logger.debug("Shop scroll finished")
 
     def __refresh(self):
         self.__logger.debug("Starting to click shop refresh")
         refresh_x = self.__window.left + self.__window.width * 0.17
-        refresh_x = self.__jitter(int(refresh_x))
+        refresh_x = self.__rand(int(refresh_x))
 
         refresh_y = self.__window.top + self.__window.height * 0.90
-        refresh_y = self.__jitter(int(refresh_y))
+        refresh_y = self.__rand(int(refresh_y))
 
         pyautogui.moveTo(refresh_x, refresh_y, duration=self.__move_delay_secs)
         pyautogui.click(interval=0.5)
 
-        time.sleep(self.__delay_secs)
+        time.sleep(self.__rand_time(self.__delay_secs))
 
         confirm_x = self.__window.left + self.__window.width * 0.56
-        confirm_x = self.__jitter(int(confirm_x))
+        confirm_x = self.__rand(int(confirm_x))
 
         confirm_y = self.__window.top + self.__window.height * 0.63
-        confirm_y = self.__jitter(int(confirm_y))
+        confirm_y = self.__rand(int(confirm_y))
 
         pyautogui.moveTo(confirm_x, confirm_y, duration=self.__move_delay_secs)
         pyautogui.click(interval=0.5)
 
-        time.sleep(self.__delay_secs)
+        time.sleep(self.__rand_time(self.__delay_secs))
         self.__logger.debug("Finished refreshing shop")
 
     def __is_whithin_window(self, loc: tuple[int, int]) -> bool:
@@ -248,10 +248,16 @@ class ShopRefresher:
         x_max = self.__window.left + self.__window.width
         return x_min <= x and x <= x_max and y_min <= y and y <= y_max
 
-    def __jitter(self, value: int) -> int:
-        jitter = 10
-        rand = random.randint(0, max(jitter, 0))
+    def __rand(self, value: int, range: int = 10) -> int:
+        rand = random.randint(0, max(range, 1))
         return value + rand
+
+    def __rand_time(self, time: float) -> float:
+        rand = self.__rand(15) / 100
+        negative = int(rand) % 2 == 0
+        if negative:
+            return time - rand
+        return time + rand
 
 
 def find_epic_seven_window() -> Any:
