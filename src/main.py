@@ -127,7 +127,7 @@ class ShopRefresher:
             "height": self.__window.height,
         }
         with mss() as sct:
-            for i in range(0, times):
+            for i in range(times):
                 self.__logger.info(f"Running shop refresh iteration [{i}]")
                 self.__stats.incr_iterations()
                 found: list[str] = []
@@ -137,7 +137,9 @@ class ShopRefresher:
                 for item in self.__items:
                     loc = processor.match_loc_sift(item.image)
                     if loc is None:
-                        self.__logger.warn(f"Could not find {item.name} in screenshot")
+                        self.__logger.warning(
+                            f"Could not find {item.name} in screenshot"
+                        )
                     else:
                         self.__logger.info(f"Found item {item.name} in screenshot")
                         if self.__buy(loc):
@@ -152,7 +154,9 @@ class ShopRefresher:
                 for item in self.__items:
                     loc = processor.match_loc_sift(item.image)
                     if loc is None:
-                        self.__logger.warn(f"Could not find {item.name} in screenshot")
+                        self.__logger.warning(
+                            f"Could not find {item.name} in screenshot"
+                        )
                     elif item.name not in found:
                         self.__logger.info(f"Found item {item.name} in screenshot")
                         if self.__buy(loc):
@@ -246,7 +250,7 @@ class ShopRefresher:
         y_max = self.__window.top + self.__window.height
         x_min = self.__window.left
         x_max = self.__window.left + self.__window.width
-        return x_min <= x and x <= x_max and y_min <= y and y <= y_max
+        return x_min <= x <= x_max and y_min <= y <= y_max
 
     def __rand(self, value: int, range: int = 10) -> int:
         rand = random.randint(0, max(range, 1))
@@ -271,7 +275,7 @@ def find_epic_seven_window() -> Any:
 
 
 def main():
-    logger = Logger(size=2, level=LogLevel.INFO)
+    logger = Logger(size=2, level=LogLevel.DEBUG)
 
     covenant_img = cv2.imread(os.path.join("assets", "covenant.png"))
     assert covenant_img is not None, "Failed loading covenant image"
@@ -286,6 +290,7 @@ def main():
     window = find_epic_seven_window()
     if window is None:
         raise Exception("Could not detect Epic Seven game open")
+
     window.activate()
     time.sleep(2)
 
@@ -293,6 +298,7 @@ def main():
     logger.info(
         f"Detected Epic Seven window with following configuration: {window.to_string()}"
     )
+
     refresher = ShopRefresher(items, window, logger)
     refresher.start(times=1_000)
 

@@ -57,22 +57,22 @@ class Logger:
         self.flush()
 
     def debug(self, msg: str) -> None:
-        now = dt.datetime.now(dt.timezone.utc)
+        now = dt.datetime.now(dt.UTC)
         entry = LogEntry(level=LogLevel.DEBUG, time=now, msg=msg)
         self.log(entry)
 
     def info(self, msg: str) -> None:
-        now = dt.datetime.now(dt.timezone.utc)
+        now = dt.datetime.now(dt.UTC)
         entry = LogEntry(level=LogLevel.INFO, time=now, msg=msg)
         self.log(entry)
 
-    def warn(self, msg: str) -> None:
-        now = dt.datetime.now(dt.timezone.utc)
+    def warning(self, msg: str) -> None:
+        now = dt.datetime.now(dt.UTC)
         entry = LogEntry(level=LogLevel.WARN, time=now, msg=msg)
         self.log(entry)
 
     def error(self, msg: str) -> None:
-        now = dt.datetime.now(dt.timezone.utc)
+        now = dt.datetime.now(dt.UTC)
         entry = LogEntry(level=LogLevel.ERROR, time=now, msg=msg)
         self.log(entry)
 
