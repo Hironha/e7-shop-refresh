@@ -1,4 +1,6 @@
+import datetime as dt
 import os
+import pathlib
 import random
 import time
 from typing import Any
@@ -11,8 +13,11 @@ from mss import mss
 
 from img.processor import ImageProcessor
 from log import Logger, LogLevel
+from metrics import MetricStorage, RefreshMetric
 
 EPIC7_TITLES = ["Epic Seven"]
+COVENANT_MEDALS = "Covenant Medals"
+MYSTIC_MEDALS = "Mystic Medals"
 
 
 class Window:
@@ -100,10 +105,17 @@ class RefreshStats:
 
 
 class ShopRefresher:
-    def __init__(self, items: list[ShopItem], window: Window, logger: Logger):
+    def __init__(
+        self,
+        items: list[ShopItem],
+        window: Window,
+        logger: Logger,
+        metric_storage: MetricStorage | None,
+    ):
         self.__logger = logger
         self.__items = items
         self.__window = window
+        self.__metric_storage = metric_storage
         self.__delay_secs = 0.4
         self.__move_delay_secs = 0.3
         self.__stats = RefreshStats()
@@ -118,6 +130,18 @@ class ShopRefresher:
             self.__logger.info(
                 f"Stats [{item.name}]: {count}/{iterations} ({pct:.2f}%)"
             )
+
+        # TODO: improve code organization to reduce duplication of calculations
+        if self.__metric_storage is not None:
+            covenant = next(i for i in self.__items if i.name == COVENANT_MEDALS)
+            covenant_count = self.__stats.count(covenant.name)
+            mystic = next(i for i in self.__items if i.name == MYSTIC_MEDALS)
+            mystic_count = self.__stats.count(mystic.name)
+
+            self.__logger.info("Storing metric into persistent storage...")
+            now = dt.datetime.now(dt.UTC)
+            metric = RefreshMetric(now, iterations, covenant_count, mystic_count)
+            self.__metric_storage.store(metric)
 
     def start(self, times: int):
         monitor = {
@@ -279,17 +303,17 @@ def main():
 
     covenant_img = cv2.imread(os.path.join("assets", "covenant.png"))
     assert covenant_img is not None, "Failed loading covenant image"
-    covenant = ShopItem(covenant_img, "Covenant Medals")
+    covenant = ShopItem(covenant_img, COVENANT_MEDALS)
 
     mystic_img = cv2.imread(os.path.join("assets", "mystic.png"))
     assert mystic_img is not None, "Failed loading mystic image"
-    mystic = ShopItem(mystic_img, "Mystic Medals")
+    mystic = ShopItem(mystic_img, MYSTIC_MEDALS)
 
     items = [covenant, mystic]
 
     window = find_epic_seven_window()
     if window is None:
-        raise Exception("Could not detect Epic Seven game open")
+        raise Exception("Could not detect Epic Seven game open")  # noqa: TRY002
 
     window.activate()
     time.sleep(2)
@@ -299,7 +323,10 @@ def main():
         f"Detected Epic Seven window with following configuration: {window.to_string()}"
     )
 
-    refresher = ShopRefresher(items, window, logger)
+    path = pathlib.Path.cwd().joinpath("metrics.csv")
+    metric_storage = MetricStorage(str(path), logger)
+
+    refresher = ShopRefresher(items, window, logger, metric_storage)
     refresher.start(times=1_000)
 
 

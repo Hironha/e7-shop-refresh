@@ -12,10 +12,11 @@ class ImageProcessor:
         self.__templ = templ
         self.__sift = cv2.SIFT.create()
 
-        index_params: dict[str, bool | int | float | str] = dict(
-            algorithm=FLANN_INDEX_KDTREE, trees=5
-        )
-        search_params: dict[str, bool | int | float | str] = dict(checks=50)
+        index_params: dict[str, bool | int | float | str] = {
+            "algorithm": FLANN_INDEX_KDTREE,
+            "trees": 5,
+        }
+        search_params: dict[str, bool | int | float | str] = {"checks": 50}
         self.__flann = cv2.FlannBasedMatcher(index_params, search_params)
 
     # Match image location using SIFT algorithm
@@ -48,7 +49,7 @@ class ImageProcessor:
         dst_pts = np.float32(templ_pts).reshape(-1, 1, 2)
 
         # Find the perspective transform (the "location")
-        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+        M, _mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
         # Calculate the center point of the item in the screenshot
         h, w = target_gray.shape
