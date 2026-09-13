@@ -14,7 +14,8 @@ from mss import mss
 
 from img.processor import ImageProcessor
 from log import Logger, LogLevel
-from metrics import MetricStorage, RefreshMetric
+from metrics import MetricsProcessor, MetricsStorage, MetricsSummary, RefreshMetric
+from result import Error, Ok
 
 PROGRAM_NAME = "e7-shop-refresh"
 EPIC7_TITLES = ["Epic Seven"]
@@ -112,7 +113,7 @@ class ShopRefresher:
         items: list[ShopItem],
         window: Window,
         logger: Logger,
-        metric_storage: MetricStorage | None,
+        metric_storage: MetricsStorage | None,
     ):
         self.__logger = logger
         self.__items = items
@@ -143,7 +144,10 @@ class ShopRefresher:
             self.__logger.info("Storing metric into persistent storage...")
             now = dt.datetime.now(dt.UTC)
             metric = RefreshMetric(now, iterations, covenant_count, mystic_count)
-            self.__metric_storage.store(metric)
+            result = self.__metric_storage.store(metric)
+            match result:
+                case Error(error):
+                    self.__logger.info(f"Failed storing metrics: {error}")
 
     def start(self, times: int):
         monitor = {
@@ -297,7 +301,7 @@ def find_epic_seven_window() -> Any:
     return None
 
 
-def setup_and_run_shop_refresh(args: argparse.Namespace) -> None:
+def handle_run_shop_refresh(args: argparse.Namespace) -> None:
     logger = Logger(size=2, level=LogLevel.DEBUG)
 
     covenant_img = cv2.imread(os.path.join("assets", "covenant.png"))
@@ -323,14 +327,96 @@ def setup_and_run_shop_refresh(args: argparse.Namespace) -> None:
     )
 
     path = pathlib.Path.cwd().joinpath("metrics.csv")
-    metric_storage = MetricStorage(str(path), logger)
+    metric_storage = MetricsStorage(str(path), logger)
 
     refresher = ShopRefresher(items, window, logger, metric_storage)
     refresher.start(times=1_000)
 
 
-def calculate_metrics(args: argparse.Namespace) -> None:
-    print("TODO: implement calculate_metrics")
+# Vibe coded the printing logic by the way, can improve it later...
+def print_summary_matrix(summary: MetricsSummary):
+    row_headers = ["Found", "Medals", "Rating", "Gold", "Skystones"]
+    col_headers = ["Covenants", "Mystics", "Total"]
+
+    matrix_data = {
+        "Found": {
+            "Covenants": summary.total_covenants,
+            "Mystics": summary.total_mystics,
+            "Total": "-",
+        },
+        "Medals": {
+            "Covenants": summary.total_covenants_medals,
+            "Mystics": summary.total_mystics_medals,
+            "Total": "-",
+        },
+        "Rating": {
+            "Covenants": f"{summary.covenant_rating:.2f}",
+            "Mystics": f"{summary.mystic_rating:.2f}",
+            "Total": "-",
+        },
+        "Gold": {
+            "Covenants": f"{summary.total_covenants_gold:,}",
+            "Mystics": f"{summary.total_mystics_gold:,}",
+            "Total": f"{summary.total_gold:,}",
+        },
+        "Skystones": {
+            "Covenants": "-",
+            "Mystics": "-",
+            "Total": summary.total_skystones,
+        },
+    }
+
+    # 1. Build 2D matrix with rows, columns, and computed totals
+    grid = [["Summary"] + col_headers]
+    for r_header in row_headers:
+        cov_val = matrix_data[r_header]["Covenants"]
+        mys_val = matrix_data[r_header]["Mystics"]
+        total_val = matrix_data[r_header]["Total"]
+
+        row_values = [str(cov_val), str(mys_val), str(total_val)]
+        grid.append([r_header] + row_values)
+
+    # 2. Calculate maximum column widths for dynamic alignment
+    num_cols = len(grid[0])
+    col_widths = [
+        max(len(grid[r][c]) for r in range(len(grid))) for c in range(num_cols)
+    ]
+
+    # 3. Construct horizontal border
+    border = "+" + "+".join("-" * (w + 2) for w in col_widths) + "+"
+
+    # 4. Print table
+    print(border)
+    for i, row in enumerate(grid):
+        formatted_row = (
+            "| "
+            + " | ".join(f"{cell:<{col_widths[j]}}" for j, cell in enumerate(row))
+            + " |"
+        )
+        print(formatted_row)
+
+        if i == 0:
+            print(border)
+
+    print(border)
+
+
+def handle_calculate_metrics(_args: argparse.Namespace) -> None:
+    logger = Logger()
+    filepath = pathlib.Path.cwd().joinpath("metrics.csv")
+    storage = MetricsStorage(str(filepath), logger)
+
+    all_metrics: list[RefreshMetric] = []
+    match storage.get_all_metrics():
+        case Ok(metrics):
+            all_metrics = metrics
+        case Error(error):
+            logger.error(f"Failed getting all metrics from storage: {error}")
+            return
+
+    processor = MetricsProcessor()
+    summary = processor.get_metrics_summary(all_metrics)
+    print_summary_matrix(summary)
 
 
 def main():
@@ -349,13 +435,13 @@ def main():
     run_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose output"
     )
-    run_parser.set_defaults(func=setup_and_run_shop_refresh)
+    run_parser.set_defaults(func=handle_run_shop_refresh)
 
     metrics_parser = subparsers.add_parser(
         "metrics",
         help='Calculate metrics based on the "metrics.csv" file that is automatically generated after a run.',
     )
-    metrics_parser.set_defaults(func=calculate_metrics)
+    metrics_parser.set_defaults(func=handle_calculate_metrics)
 
     args = parser.parse_args()
     args.func(args)
