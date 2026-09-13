@@ -338,6 +338,9 @@ def print_summary_matrix(summary: MetricsSummary):
     row_headers = ["Found", "Medals", "Rating", "Gold", "Skystones"]
     col_headers = ["Covenants", "Mystics", "Total"]
 
+    covenant_rating_pct = summary.covenant_rating * 100
+    mystic_rating_pct = summary.mystic_rating * 100
+
     matrix_data = {
         "Found": {
             "Covenants": summary.total_covenants,
@@ -350,8 +353,8 @@ def print_summary_matrix(summary: MetricsSummary):
             "Total": "-",
         },
         "Rating": {
-            "Covenants": f"{summary.covenant_rating:.2f}",
-            "Mystics": f"{summary.mystic_rating:.2f}",
+            "Covenants": f"{covenant_rating_pct:.2f}%",
+            "Mystics": f"{mystic_rating_pct:.2f}%",
             "Total": "-",
         },
         "Gold": {
