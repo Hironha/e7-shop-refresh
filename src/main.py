@@ -154,42 +154,39 @@ class ShopRefresher:
             for i in range(times):
                 self.__logger.info(f"Running shop refresh iteration [{i}]")
                 self.__stats.incr_iterations()
-                found: list[str] = []
+
+                found_items: list[str] = []
+
                 # without scroll
                 screenshot = np.array(sct.grab(monitor))
                 processor = ImageProcessor(screenshot)
-                for item in self.__items:
-                    loc = processor.match_loc_sift(item.image)
-                    if loc is None:
-                        self.__logger.warning(
-                            f"Could not find {item.name} in screenshot"
-                        )
-                    else:
-                        self.__logger.info(f"Found item {item.name} in screenshot")
-                        if self.__buy(loc):
-                            found.append(item.name)
-                            self.__stats.incr_item(item.name)
+                self.__process_screenshot(processor, found_items)
 
                 self.__scroll()
 
-                # with scroll
+                # with scroll, hopefully someday SG removes the scroll from
+                # the secret shop...
                 screenshot = np.array(sct.grab(monitor))
                 processor = ImageProcessor(screenshot)
-                for item in self.__items:
-                    loc = processor.match_loc_sift(item.image)
-                    if loc is None:
-                        self.__logger.warning(
-                            f"Could not find {item.name} in screenshot"
-                        )
-                    elif item.name not in found:
-                        self.__logger.info(f"Found item {item.name} in screenshot")
-                        if self.__buy(loc):
-                            self.__stats.incr_item(item.name)
+                self.__process_screenshot(processor, found_items)
 
                 self.__refresh()
                 self.__logger.info(f"Finished shop refresh iteration [{i}]")
                 # use bigger delay to wait for shop refresh animation
                 time.sleep(self.__rand_time(1.25))
+
+    def __process_screenshot(
+        self, processor: ImageProcessor, found_items: list[str]
+    ) -> None:
+        for item in self.__items:
+            loc = processor.match_loc_sift(item.image)
+            if loc is None:
+                self.__logger.warning(f"Could not find {item.name} in screenshot")
+            elif item.name not in found_items:
+                self.__logger.info(f"Found item {item.name} in screenshot")
+                if self.__buy(loc):
+                    found_items.append(item.name)
+                    self.__stats.incr_item(item.name)
 
     def __buy(self, item_loc: tuple[int, int]) -> bool:
         _item_x, item_y = item_loc
