@@ -1,3 +1,4 @@
+import argparse
 import datetime as dt
 import os
 import pathlib
@@ -15,6 +16,7 @@ from img.processor import ImageProcessor
 from log import Logger, LogLevel
 from metrics import MetricStorage, RefreshMetric
 
+PROGRAM_NAME = "e7-shop-refresh"
 EPIC7_TITLES = ["Epic Seven"]
 COVENANT_MEDALS = "Covenant Medals"
 MYSTIC_MEDALS = "Mystic Medals"
@@ -295,7 +297,7 @@ def find_epic_seven_window() -> Any:
     return None
 
 
-def main():
+def setup_and_run_shop_refresh(args: argparse.Namespace) -> None:
     logger = Logger(size=2, level=LogLevel.DEBUG)
 
     covenant_img = cv2.imread(os.path.join("assets", "covenant.png"))
@@ -325,6 +327,38 @@ def main():
 
     refresher = ShopRefresher(items, window, logger, metric_storage)
     refresher.start(times=1_000)
+
+
+def calculate_metrics(args: argparse.Namespace) -> None:
+    print("TODO: implement calculate_metrics")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog=PROGRAM_NAME,
+        description="Small script to automatically refresh Epic Seven refresh shop",
+    )
+    subparsers = parser.add_subparsers(
+        title="commands", help="Available commands", required=True
+    )
+
+    run_parser = subparsers.add_parser(
+        "run",
+        help="Start automatically refreshing Epic Seven shop. NOTES: Epic Seven should be running and already be on the Refresh Shop screen.",
+    )
+    run_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose output"
+    )
+    run_parser.set_defaults(func=setup_and_run_shop_refresh)
+
+    metrics_parser = subparsers.add_parser(
+        "metrics",
+        help='Calculate metrics based on the "metrics.csv" file that is automatically generated after a run.',
+    )
+    metrics_parser.set_defaults(func=calculate_metrics)
+
+    args = parser.parse_args()
+    args.func(args)
 
 
 if __name__ == "__main__":
