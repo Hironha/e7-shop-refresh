@@ -13,6 +13,7 @@ import pyautogui
 import pygetwindow as pgw
 from mss import mss
 
+import ascii
 from img.processor import ImageProcessor
 from log import Logger, LogLevel
 from metrics import MetricsProcessor, MetricsStorage, MetricsSummary, RefreshMetric
@@ -337,77 +338,6 @@ def handle_shop_refresh(args: argparse.Namespace) -> None:
     refresher.start(times=1_000)
 
 
-# Vibe coded the printing logic by the way, can improve it later...
-def print_summary_matrix(summary: MetricsSummary):
-    row_headers = ["Found", "Medals", "Rating", "Gold", "Skystones"]
-    col_headers = ["Covenants", "Mystics", "Total"]
-
-    covenant_rating_pct = summary.covenant_rating * 100
-    mystic_rating_pct = summary.mystic_rating * 100
-
-    matrix_data = {
-        "Found": {
-            "Covenants": summary.total_covenants,
-            "Mystics": summary.total_mystics,
-            "Total": "-",
-        },
-        "Medals": {
-            "Covenants": summary.total_covenants_medals,
-            "Mystics": summary.total_mystics_medals,
-            "Total": "-",
-        },
-        "Rating": {
-            "Covenants": f"{covenant_rating_pct:.2f}%",
-            "Mystics": f"{mystic_rating_pct:.2f}%",
-            "Total": "-",
-        },
-        "Gold": {
-            "Covenants": f"{summary.total_covenants_gold:,}",
-            "Mystics": f"{summary.total_mystics_gold:,}",
-            "Total": f"{summary.total_gold:,}",
-        },
-        "Skystones": {
-            "Covenants": "-",
-            "Mystics": "-",
-            "Total": summary.total_skystones,
-        },
-    }
-
-    # 1. Build 2D matrix with rows, columns, and computed totals
-    grid = [["Summary"] + col_headers]
-    for r_header in row_headers:
-        cov_val = matrix_data[r_header]["Covenants"]
-        mys_val = matrix_data[r_header]["Mystics"]
-        total_val = matrix_data[r_header]["Total"]
-
-        row_values = [str(cov_val), str(mys_val), str(total_val)]
-        grid.append([r_header] + row_values)
-
-    # 2. Calculate maximum column widths for dynamic alignment
-    num_cols = len(grid[0])
-    col_widths = [
-        max(len(grid[r][c]) for r in range(len(grid))) for c in range(num_cols)
-    ]
-
-    # 3. Construct horizontal border
-    border = "+" + "+".join("-" * (w + 2) for w in col_widths) + "+"
-
-    # 4. Print table
-    print(border)
-    for i, row in enumerate(grid):
-        formatted_row = (
-            "│ "
-            + " │ ".join(f"{cell:<{col_widths[j]}}" for j, cell in enumerate(row))
-            + " │"
-        )
-        print(formatted_row)
-
-        if i == 0:
-            print(border)
-
-    print(border)
-
-
 def handle_calculate_metrics(_args: argparse.Namespace) -> None:
     logger = Logger()
     filepath = pathlib.Path.cwd().joinpath("metrics.csv")
@@ -423,7 +353,35 @@ def handle_calculate_metrics(_args: argparse.Namespace) -> None:
 
     processor = MetricsProcessor()
     summary = processor.get_metrics_summary(all_metrics)
-    print_summary_matrix(summary)
+
+    covenant_rating_pct = summary.covenant_rating * 100
+    mystic_rating_pct = summary.mystic_rating * 100
+
+    # Covenants | Mystics | Total
+    matrix_data: dict[str, list[str]] = {
+        "Found": [str(summary.total_covenants), str(summary.total_mystics), "-"],
+        "Medals": [
+            str(summary.total_covenants_medals),
+            str(summary.total_mystics_medals),
+            "-",
+        ],
+        "Rating": [f"{covenant_rating_pct:.2f}%", f"{mystic_rating_pct:.2f}%", "_"],
+        "Gold": [
+            f"{summary.total_covenants_gold:,}",
+            f"{summary.total_mystics_gold:,}",
+            f"{summary.total_gold:,}",
+        ],
+        "Skystones": ["-", "-", str(summary.total_skystones)],
+    }
+
+    grid_data = [["Summary", "Covenants", "Mystics", "Total"]]
+    for k, v in matrix_data.items():
+        row = [k] + v
+        grid_data.append(row)
+
+    builder = ascii.GridBuilder()
+    grid = builder.build(grid_data)
+    print(grid)
 
 
 def main():
