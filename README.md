@@ -13,5 +13,5 @@ uv sync
 and run the script using:
 
 ```sh
-uv run ./src/main.py
+uv run ./src/main.py refresh
 ```

@@ -3,6 +3,7 @@ import datetime as dt
 import os
 import pathlib
 import random
+import sys
 import time
 from typing import Any
 
@@ -301,8 +302,10 @@ def find_epic_seven_window() -> Any:
     return None
 
 
-def handle_run_shop_refresh(args: argparse.Namespace) -> None:
-    logger = Logger(size=2, level=LogLevel.DEBUG)
+def handle_shop_refresh(args: argparse.Namespace) -> None:
+    verbose = args.verbose is not None
+    level = LogLevel.DEBUG if verbose else LogLevel.ERROR
+    logger = Logger(size=2, level=level)
 
     covenant_img = cv2.imread(os.path.join("assets", "covenant.png"))
     assert covenant_img is not None, "Failed loading covenant image"
@@ -316,7 +319,8 @@ def handle_run_shop_refresh(args: argparse.Namespace) -> None:
 
     window = find_epic_seven_window()
     if window is None:
-        raise Exception("Could not detect Epic Seven game open")  # noqa: TRY002
+        logger.error("Epic Seven game window not found on current screen")
+        sys.exit(0)
 
     window.activate()
     time.sleep(2)
@@ -392,9 +396,9 @@ def print_summary_matrix(summary: MetricsSummary):
     print(border)
     for i, row in enumerate(grid):
         formatted_row = (
-            "| "
-            + " | ".join(f"{cell:<{col_widths[j]}}" for j, cell in enumerate(row))
-            + " |"
+            "│ "
+            + " │ ".join(f"{cell:<{col_widths[j]}}" for j, cell in enumerate(row))
+            + " │"
         )
         print(formatted_row)
 
@@ -431,14 +435,17 @@ def main():
         title="commands", help="Available commands", required=True
     )
 
-    run_parser = subparsers.add_parser(
-        "run",
+    refresh_parser = subparsers.add_parser(
+        "refresh",
         help="Start automatically refreshing Epic Seven shop. NOTES: Epic Seven should be running and already be on the Refresh Shop screen.",
     )
-    run_parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose output"
+    refresh_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output with logs on DEBUG level",
     )
-    run_parser.set_defaults(func=handle_run_shop_refresh)
+    refresh_parser.set_defaults(func=handle_shop_refresh)
 
     metrics_parser = subparsers.add_parser(
         "metrics",
