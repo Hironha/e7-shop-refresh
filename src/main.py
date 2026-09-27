@@ -20,6 +20,7 @@ from metrics import (
     MetricsOverview,
     MetricsProcessor,
     MetricsStorage,
+    MetricsSummary,
     RefreshMetric,
 )
 from result import Error, Ok
@@ -343,7 +344,7 @@ def handle_shop_refresh(args: argparse.Namespace) -> None:
     refresher.start(times=1_000)
 
 
-def build_metrics_from_overview(overview: list[MetricsOverview]) -> list[list[str]]:
+def build_overview_grid_data(overview: list[MetricsOverview]) -> list[list[str]]:
     headers = [
         "Date",
         "Iterations",
@@ -374,73 +375,11 @@ def build_metrics_from_overview(overview: list[MetricsOverview]) -> list[list[st
     return data
 
 
-def handle_calculate_metrics(args: argparse.Namespace) -> None:
-    logger = Logger(size=2, level=LogLevel.ERROR)
-    filepath = pathlib.Path.cwd().joinpath("metrics.csv")
-    storage = MetricsStorage(str(filepath), logger)
-
-    head = args.head
-    if head is not None:
-        head = int(head)
-        if head <= 0:
-            logger.error("Metrics head <n> should be greater than 0")
-            return
-
-        head_metrics: list[RefreshMetric]
-        match storage.head(head):
-            case Ok(m):
-                head_metrics = m
-            case Error(e):
-                logger.error(f"Failed getting first {head} metrics from storage: {e}")
-                return
-
-        processor = MetricsProcessor()
-        overview = processor.overview(head_metrics)
-        grid_data = build_metrics_from_overview(overview)
-
-        grid_builder = ascii.GridBuilder()
-        grid = grid_builder.build(grid_data)
-        print(grid)
-        return
-
-    tail = args.tail
-    if tail is not None:
-        tail = int(tail)
-        if tail <= 0:
-            logger.error("Metrics tail <n> should be greater than 0")
-            return
-        tail_metrics: list[RefreshMetric]
-        match storage.tail(tail):
-            case Ok(m):
-                tail_metrics = m
-            case Error(e):
-                logger.error(f"Failed getting last {tail} metrics from storage: {e}")
-                return
-
-        processor = MetricsProcessor()
-        overview = processor.overview(tail_metrics)
-        grid_data = build_metrics_from_overview(overview)
-
-        grid_builder = ascii.GridBuilder()
-        grid = grid_builder.build(grid_data)
-        print(grid)
-        return
-
-    all_metrics: list[RefreshMetric]
-    match storage.get_all_metrics():
-        case Ok(metrics):
-            all_metrics = metrics
-        case Error(error):
-            logger.error(f"Failed getting all metrics from storage: {error}")
-            return
-
-    processor = MetricsProcessor()
-    summary = processor.summarize(all_metrics)
-
+def build_summary_grid_data(summary: MetricsSummary) -> list[list[str]]:
     covenant_rating_pct = summary.covenant_rating * 100
     mystic_rating_pct = summary.mystic_rating * 100
 
-    grid_data = [
+    return [
         ["Summary", "Covenants", "Mystics", "Total"],
         ["Count", str(summary.covenants), str(summary.mystics), "-"],
         [
@@ -459,6 +398,76 @@ def handle_calculate_metrics(args: argparse.Namespace) -> None:
         ["Skystones", "-", "-", str(summary.skystones)],
         ["Iterations", "-", "-", str(summary.iterations)],
     ]
+
+
+def handle_metrics_head(storage: MetricsStorage, logger: Logger, head: int) -> None:
+    if head <= 0:
+        logger.error("Metrics head <n> should be greater than 0")
+        return
+
+    head_metrics: list[RefreshMetric]
+    match storage.head(head):
+        case Ok(m):
+            head_metrics = m
+        case Error(e):
+            logger.error(f"Failed getting first {head} metrics from storage: {e}")
+            return
+
+    processor = MetricsProcessor()
+    overview = processor.overview(head_metrics)
+    grid_data = build_overview_grid_data(overview)
+
+    grid_builder = ascii.GridBuilder()
+    grid = grid_builder.build(grid_data)
+    print(grid)
+    return
+
+
+def handle_metrics_tail(storage: MetricsStorage, logger: Logger, tail: int) -> None:
+    if tail <= 0:
+        logger.error("Metrics tail <n> should be greater than 0")
+        return
+    tail_metrics: list[RefreshMetric]
+    match storage.tail(tail):
+        case Ok(m):
+            tail_metrics = m
+        case Error(e):
+            logger.error(f"Failed getting last {tail} metrics from storage: {e}")
+            return
+
+    processor = MetricsProcessor()
+    overview = processor.overview(tail_metrics)
+    grid_data = build_overview_grid_data(overview)
+
+    grid_builder = ascii.GridBuilder()
+    grid = grid_builder.build(grid_data)
+    print(grid)
+    return
+
+
+def handle_calculate_metrics(args: argparse.Namespace) -> None:
+    logger = Logger(size=2, level=LogLevel.ERROR)
+    filepath = pathlib.Path.cwd().joinpath("metrics.csv")
+    storage = MetricsStorage(str(filepath), logger)
+
+    if args.head is not None:
+        handle_metrics_head(storage, logger, int(args.head))
+        return
+    elif args.tail is not None:
+        handle_metrics_tail(storage, logger, int(args.tail))
+        return
+
+    all_metrics: list[RefreshMetric]
+    match storage.get_all_metrics():
+        case Ok(metrics):
+            all_metrics = metrics
+        case Error(error):
+            logger.error(f"Failed getting all metrics from storage: {error}")
+            return
+
+    processor = MetricsProcessor()
+    summary = processor.summarize(all_metrics)
+    grid_data = build_summary_grid_data(summary)
 
     builder = ascii.GridBuilder()
     grid = builder.build(grid_data)
