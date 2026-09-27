@@ -440,27 +440,25 @@ def handle_calculate_metrics(args: argparse.Namespace) -> None:
     covenant_rating_pct = summary.covenant_rating * 100
     mystic_rating_pct = summary.mystic_rating * 100
 
-    # Covenants | Mystics | Total
-    matrix_data: dict[str, list[str]] = {
-        "Found": [str(summary.total_covenants), str(summary.total_mystics), "-"],
-        "Medals": [
-            str(summary.total_covenants_medals),
-            str(summary.total_mystics_medals),
+    grid_data = [
+        ["Summary", "Covenants", "Mystics", "Total"],
+        ["Count", str(summary.covenants), str(summary.mystics), "-"],
+        [
+            "Currency",
+            str(summary.covenant_bookmarks),
+            str(summary.msytic_medals),
             "-",
         ],
-        "Rating": [f"{covenant_rating_pct:.2f}%", f"{mystic_rating_pct:.2f}%", "_"],
-        "Gold": [
-            f"{summary.total_covenants_gold:,}",
-            f"{summary.total_mystics_gold:,}",
-            f"{summary.total_gold:,}",
+        ["Rating", f"{covenant_rating_pct:.2f}%", f"{mystic_rating_pct:.2f}%", "_"],
+        [
+            "Gold",
+            f"{summary.covenant_gold:,}",
+            f"{summary.mystic_gold:,}",
+            f"{summary.gold:,}",
         ],
-        "Skystones": ["-", "-", str(summary.total_skystones)],
-    }
-
-    grid_data = [["Summary", "Covenants", "Mystics", "Total"]]
-    for k, v in matrix_data.items():
-        row = [k] + v
-        grid_data.append(row)
+        ["Skystones", "-", "-", str(summary.skystones)],
+        ["Iterations", "-", "-", str(summary.iterations)],
+    ]
 
     builder = ascii.GridBuilder()
     grid = builder.build(grid_data)

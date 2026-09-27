@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from log import Logger
 from result import Error, Ok, Result
 
-# TODO: rename covenants medals to covenants bookmarks @dataclass
-
 
 @dataclass
 class RefreshMetric:
@@ -142,17 +140,17 @@ class MetricsStorage:
 
 @dataclass(frozen=True)
 class MetricsSummary:
-    total_iterations: int
-    total_covenants: int
-    total_covenants_medals: int
-    total_covenants_gold: int
+    iterations: int
+    covenants: int
+    covenant_bookmarks: int
+    covenant_gold: int
     covenant_rating: float
-    total_mystics: int
-    total_mystics_medals: int
-    total_mystics_gold: int
+    mystics: int
+    msytic_medals: int
+    mystic_gold: int
     mystic_rating: float
-    total_skystones: int
-    total_gold: int
+    skystones: int
+    gold: int
 
 
 @dataclass(frozen=True)
@@ -180,37 +178,37 @@ class MetricsProcessor:
         self.__gold_per_mystic = 280_000
 
     def summarize(self, metrics: list[RefreshMetric]) -> MetricsSummary:
-        total_iterations = 0
-        total_covenants = 0
-        total_mystics = 0
+        iterations = 0
+        covenants = 0
+        mystics = 0
         for metric in metrics:
-            total_iterations += metric.iterations
-            total_covenants += metric.covenant_count
-            total_mystics += metric.mystic_count
+            iterations += metric.iterations
+            covenants += metric.covenant_count
+            mystics += metric.mystic_count
 
-        total_skystones = self.__skystone_per_iteration * total_iterations
-        total_covenants_medals = self.__booksmarks_per_covenant * total_covenants
-        total_covenants_gold = self.__gold_per_covenant * total_covenants
-        covenant_rating = total_covenants / total_iterations
+        skystones = self.__skystone_per_iteration * iterations
+        covenant_medals = self.__booksmarks_per_covenant * covenants
+        covenant_gold = self.__gold_per_covenant * covenants
+        covenant_rating = covenants / iterations
 
-        total_mystics_medals = self.__medals_per_mystic * total_mystics
-        total_mystics_gold = self.__gold_per_mystic * total_mystics
-        mystic_rating = total_mystics / total_iterations
+        mystic_medals = self.__medals_per_mystic * mystics
+        mystic_gold = self.__gold_per_mystic * mystics
+        mystic_rating = mystics / iterations
 
-        total_gold = total_covenants_gold + total_mystics_gold
+        gold = covenant_gold + mystic_gold
 
         return MetricsSummary(
-            total_iterations=total_iterations,
-            total_covenants=total_covenants,
-            total_covenants_medals=total_covenants_medals,
-            total_covenants_gold=total_covenants_gold,
+            iterations=iterations,
+            covenants=covenants,
+            covenant_bookmarks=covenant_medals,
+            covenant_gold=covenant_gold,
             covenant_rating=covenant_rating,
-            total_mystics=total_mystics,
-            total_mystics_medals=total_mystics_medals,
-            total_mystics_gold=total_mystics_gold,
+            mystics=mystics,
+            msytic_medals=mystic_medals,
+            mystic_gold=mystic_gold,
             mystic_rating=mystic_rating,
-            total_gold=total_gold,
-            total_skystones=total_skystones,
+            gold=gold,
+            skystones=skystones,
         )
 
     def overview(self, metrics: list[RefreshMetric]) -> list[MetricsOverview]:

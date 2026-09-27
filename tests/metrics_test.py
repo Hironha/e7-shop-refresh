@@ -15,17 +15,17 @@ def test_summarize() -> None:
     summary = processor.summarize(metrics)
 
     assert summary == MetricsSummary(
-        total_iterations=180,
-        total_covenants=21,
-        total_covenants_medals=105,
-        total_covenants_gold=3_864_000,
+        iterations=180,
+        covenants=21,
+        covenant_bookmarks=105,
+        covenant_gold=3_864_000,
         covenant_rating=21 / 180,
-        total_mystics=5,
-        total_mystics_medals=250,
-        total_mystics_gold=1_400_000,
+        mystics=5,
+        msytic_medals=250,
+        mystic_gold=1_400_000,
         mystic_rating=5 / 180,
-        total_skystones=540,
-        total_gold=5_264_000,
+        skystones=540,
+        gold=5_264_000,
     )
 
 
