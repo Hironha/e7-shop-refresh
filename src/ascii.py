@@ -36,12 +36,13 @@ class GridBuilder:
 
         for r, row in enumerate(data):
             for c, col in enumerate(row):
-                if c == 0:
-                    buffer.write("│")
+                # write left border
+                buffer.write("│")
                 col_len = col_spacing[c]
                 col_aligned = self.__pad_column(col).ljust(col_len, " ")
                 buffer.write(col_aligned)
-                buffer.write("│")
+            # write right border
+            buffer.write("│")
             buffer.write("\n")
 
             is_last_row = r == len(data) - 1
