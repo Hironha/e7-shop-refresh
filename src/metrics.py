@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from log import Logger
 from result import Error, Ok, Result
 
+# TODO: rename covenants medals to covenants bookmarks @dataclass
+
 
 @dataclass
 class RefreshMetric:
@@ -58,14 +60,67 @@ class MetricsStorage:
 
             metrics: list[RefreshMetric] = []
             for row in reader:
-                created_at = dt.datetime.fromisoformat(row[0])
-                iterations = int(row[1])
-                covenant_count = int(row[2])
-                mystic_count = int(row[3])
+                match self.__deserialize_metric(row):
+                    case Ok(metric):
+                        metrics.append(metric)
+                    case error:
+                        return error
 
-                metrics.append(
-                    RefreshMetric(created_at, iterations, covenant_count, mystic_count)
-                )
+            return Ok(metrics)
+
+    def tail(self, n: int) -> Result[list[RefreshMetric], str]:
+        filepath = self.__filepath
+        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            self.__logger.error(
+                f"Failed getting last {n} metrics from {filepath}. File empty or not found."
+            )
+            return Ok([])
+
+        with open(filepath, mode="r", newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            headers = next(reader)
+            if headers is None or headers != self.__headers:
+                return Error("Missing or invalid headers from CSV file")
+
+            # reading a csv in reverse is actually kinda hard, so for now just load everything into memory
+            lines = reversed(list(reader))
+            metrics: list[RefreshMetric] = []
+            for row in lines:
+                if len(metrics) >= n:
+                    break
+
+                match self.__deserialize_metric(row):
+                    case Ok(metric):
+                        metrics.append(metric)
+                    case error:
+                        return error
+
+            return Ok(metrics)
+
+    def head(self, n: int) -> Result[list[RefreshMetric], str]:
+        filepath = self.__filepath
+        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            self.__logger.error(
+                f"Failed getting first {n} metrics from {filepath}. File empty or not found."
+            )
+            return Ok([])
+
+        with open(filepath, mode="r", newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            headers = next(reader)
+            if headers is None or headers != self.__headers:
+                return Error("Missing or invalid headers from CSV file")
+
+            metrics: list[RefreshMetric] = []
+            for row in reader:
+                if len(metrics) >= n:
+                    break
+
+                match self.__deserialize_metric(row):
+                    case Ok(metric):
+                        metrics.append(metric)
+                    case error:
+                        return error
 
             return Ok(metrics)
 
@@ -76,6 +131,13 @@ class MetricsStorage:
         mystic_count = str(metric.mystic_count)
         # order matters and it must be the same order defined in headers
         return [created_at, iterations, covenant_count, mystic_count]
+
+    def __deserialize_metric(self, row: list[str]) -> Result[RefreshMetric, str]:
+        created_at = dt.datetime.fromisoformat(row[0])
+        iterations = int(row[1])
+        covenant_count = int(row[2])
+        mystic_count = int(row[3])
+        return Ok(RefreshMetric(created_at, iterations, covenant_count, mystic_count))
 
 
 @dataclass(frozen=True)
@@ -93,16 +155,31 @@ class MetricsSummary:
     total_gold: int
 
 
+@dataclass(frozen=True)
+class MetricsOverview:
+    created_at: dt.datetime
+    iterations: int
+    covenants: int
+    covenant_bookmarks: int
+    covenant_rating: float
+    covenant_gold: int
+    mystics: int
+    mystic_medals: int
+    mystic_gold: int
+    mystic_rating: float
+    skystones: int
+    gold: int
+
+
 class MetricsProcessor:
     def __init__(self):
-        pass
+        self.__skystone_per_iteration = 3
+        self.__medals_per_mystic = 50
+        self.__booksmarks_per_covenant = 5
+        self.__gold_per_covenant = 184_000
+        self.__gold_per_mystic = 280_000
 
-    def get_metrics_summary(self, metrics: list[RefreshMetric]) -> MetricsSummary:
-        skystone_per_iteration = 3
-        medals_per_unit = 5
-        gold_per_covenant = 184_000
-        gold_per_mystic = 280_000
-
+    def summarize(self, metrics: list[RefreshMetric]) -> MetricsSummary:
         total_iterations = 0
         total_covenants = 0
         total_mystics = 0
@@ -111,13 +188,13 @@ class MetricsProcessor:
             total_covenants += metric.covenant_count
             total_mystics += metric.mystic_count
 
-        total_skystones = skystone_per_iteration * total_iterations
-        total_covenants_medals = medals_per_unit * total_covenants
-        total_covenants_gold = gold_per_covenant * total_covenants
+        total_skystones = self.__skystone_per_iteration * total_iterations
+        total_covenants_medals = self.__booksmarks_per_covenant * total_covenants
+        total_covenants_gold = self.__gold_per_covenant * total_covenants
         covenant_rating = total_covenants / total_iterations
 
-        total_mystics_medals = medals_per_unit * total_mystics
-        total_mystics_gold = gold_per_mystic * total_mystics
+        total_mystics_medals = self.__medals_per_mystic * total_mystics
+        total_mystics_gold = self.__gold_per_mystic * total_mystics
         mystic_rating = total_mystics / total_iterations
 
         total_gold = total_covenants_gold + total_mystics_gold
@@ -135,3 +212,34 @@ class MetricsProcessor:
             total_gold=total_gold,
             total_skystones=total_skystones,
         )
+
+    def overview(self, metrics: list[RefreshMetric]) -> list[MetricsOverview]:
+        overview: list[MetricsOverview] = []
+        for metric in metrics:
+            skystones = self.__skystone_per_iteration * metric.iterations
+            covenant_bookmarks = self.__booksmarks_per_covenant * metric.covenant_count
+            covenant_gold = self.__gold_per_covenant * metric.covenant_count
+            covenant_rating = metric.covenant_count / metric.iterations
+
+            mystic_medals = self.__medals_per_mystic * metric.mystic_count
+            mystic_gold = self.__gold_per_mystic * metric.mystic_count
+            mystic_rating = metric.mystic_count / metric.iterations
+
+            gold = covenant_gold + mystic_gold
+            overview.append(
+                MetricsOverview(
+                    created_at=metric.created_at,
+                    iterations=metric.iterations,
+                    covenants=metric.covenant_count,
+                    covenant_bookmarks=covenant_bookmarks,
+                    covenant_rating=covenant_rating,
+                    covenant_gold=covenant_gold,
+                    mystics=metric.mystic_count,
+                    mystic_medals=mystic_medals,
+                    mystic_gold=mystic_gold,
+                    mystic_rating=mystic_rating,
+                    skystones=skystones,
+                    gold=gold,
+                )
+            )
+        return overview

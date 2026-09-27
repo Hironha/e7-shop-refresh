@@ -16,7 +16,12 @@ from mss import mss
 import ascii
 from img.processor import ImageProcessor
 from log import Logger, LogLevel
-from metrics import MetricsProcessor, MetricsStorage, MetricsSummary, RefreshMetric
+from metrics import (
+    MetricsOverview,
+    MetricsProcessor,
+    MetricsStorage,
+    RefreshMetric,
+)
 from result import Error, Ok
 
 PROGRAM_NAME = "e7-shop-refresh"
@@ -338,12 +343,90 @@ def handle_shop_refresh(args: argparse.Namespace) -> None:
     refresher.start(times=1_000)
 
 
-def handle_calculate_metrics(_args: argparse.Namespace) -> None:
-    logger = Logger()
+def build_metrics_from_overview(overview: list[MetricsOverview]) -> list[list[str]]:
+    headers = [
+        "Date",
+        "Iterations",
+        "Cov.",
+        "Cov. BM",
+        "Cov. Rating",
+        "Mys.",
+        "Mys. Medals",
+        "Mys. Rating",
+        "SS",
+        "Gold",
+    ]
+    data: list[list[str]] = [headers]
+    for item in overview:
+        row = [
+            item.created_at.strftime("%Y-%m-%d"),
+            str(item.iterations),
+            str(item.covenants),
+            str(item.covenant_bookmarks),
+            f"{item.covenant_rating:.2f}%",
+            str(item.mystics),
+            str(item.mystic_medals),
+            f"{item.mystic_rating:.2f}%",
+            f"{item.skystones:,}",
+            f"{item.gold:,}",
+        ]
+        data.append(row)
+    return data
+
+
+def handle_calculate_metrics(args: argparse.Namespace) -> None:
+    logger = Logger(size=2, level=LogLevel.ERROR)
     filepath = pathlib.Path.cwd().joinpath("metrics.csv")
     storage = MetricsStorage(str(filepath), logger)
 
-    all_metrics: list[RefreshMetric] = []
+    head = args.head
+    if head is not None:
+        head = int(head)
+        if head <= 0:
+            logger.error("Metrics head <n> should be greater than 0")
+            return
+
+        head_metrics: list[RefreshMetric]
+        match storage.head(head):
+            case Ok(m):
+                head_metrics = m
+            case Error(e):
+                logger.error(f"Failed getting first {head} metrics from storage: {e}")
+                return
+
+        processor = MetricsProcessor()
+        overview = processor.overview(head_metrics)
+        grid_data = build_metrics_from_overview(overview)
+
+        grid_builder = ascii.GridBuilder()
+        grid = grid_builder.build(grid_data)
+        print(grid)
+        return
+
+    tail = args.tail
+    if tail is not None:
+        tail = int(tail)
+        if tail <= 0:
+            logger.error("Metrics tail <n> should be greater than 0")
+            return
+        tail_metrics: list[RefreshMetric]
+        match storage.tail(tail):
+            case Ok(m):
+                tail_metrics = m
+            case Error(e):
+                logger.error(f"Failed getting last {tail} metrics from storage: {e}")
+                return
+
+        processor = MetricsProcessor()
+        overview = processor.overview(tail_metrics)
+        grid_data = build_metrics_from_overview(overview)
+
+        grid_builder = ascii.GridBuilder()
+        grid = grid_builder.build(grid_data)
+        print(grid)
+        return
+
+    all_metrics: list[RefreshMetric]
     match storage.get_all_metrics():
         case Ok(metrics):
             all_metrics = metrics
@@ -352,7 +435,7 @@ def handle_calculate_metrics(_args: argparse.Namespace) -> None:
             return
 
     processor = MetricsProcessor()
-    summary = processor.get_metrics_summary(all_metrics)
+    summary = processor.summarize(all_metrics)
 
     covenant_rating_pct = summary.covenant_rating * 100
     mystic_rating_pct = summary.mystic_rating * 100
@@ -408,6 +491,26 @@ def main():
     metrics_parser = subparsers.add_parser(
         "metrics",
         help='Calculate metrics based on the "metrics.csv" file that is automatically generated after a run.',
+    )
+
+    tail_head = metrics_parser.add_mutually_exclusive_group()
+    tail_head.add_argument(
+        "--head",
+        nargs="?",
+        type=int,
+        const=10,
+        default=None,
+        metavar="N",
+        help="Show first <n> refresh metrics.",
+    )
+    tail_head.add_argument(
+        "--tail",
+        nargs="?",
+        type=int,
+        const=10,
+        default=None,
+        metavar="N",
+        help="Show last <n> refresh metrics.",
     )
     metrics_parser.set_defaults(func=handle_calculate_metrics)
 

@@ -51,7 +51,7 @@ class Logger:
     def __init__(self, size=5, level: LogLevel | None = None):
         self.__entries: list[LogEntry] = []
         self.__size = size
-        self.__level: LogLevel | None = level
+        self.__level: LogLevel | None = level or LogLevel.ERROR
 
     def __del__(self):
         self.flush()

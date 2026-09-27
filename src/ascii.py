@@ -119,6 +119,7 @@ class GridBuilder:
         else:
             return "─"
 
+    # TODO: rename to __calculate_cells_length
     def __calculate_columns_length(self, data: list[list[str]]) -> list[int]:
         col_spacing: list[int] = []
         for row in data:
