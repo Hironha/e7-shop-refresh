@@ -153,9 +153,8 @@ class ShopRefresher:
             now = dt.datetime.now(dt.UTC)
             metric = RefreshMetric(now, iterations, covenant_count, mystic_count)
             result = self.__metric_storage.store(metric)
-            match result:
-                case Error(error):
-                    self.__logger.info(f"Failed storing metrics: {error}")
+            if Error.is_error(result):
+                self.__logger.info(f"Failed storing metrics: {result.error}")
 
     def start(self, times: int):
         monitor = {

@@ -1,12 +1,22 @@
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypeGuard
 
 
 @dataclass(frozen=True)
 class Ok[T]:
     value: T
 
-    def is_ok(self) -> Literal[True]:
+    @staticmethod
+    def is_ok[U, E](result: Result[U, E]) -> TypeGuard[Ok[U]]:
+        return result.__is_ok()
+
+    @staticmethod
+    def get[U, E](result: Result[U, E]) -> U | None:
+        if Ok.is_ok(result):
+            return result.value
+        return None
+
+    def __is_ok(self) -> Literal[True]:
         return True
 
 
@@ -14,7 +24,17 @@ class Ok[T]:
 class Error[E]:
     error: E
 
-    def is_ok(self) -> Literal[False]:
+    @staticmethod
+    def is_error[T, U](result: Result[T, U]) -> TypeGuard[Error[U]]:
+        return not result.__is_ok()
+
+    @staticmethod
+    def get[T, U](result: Result[T, U]) -> U | None:
+        if Error.is_error(result):
+            return result.error
+        return None
+
+    def __is_ok(self) -> Literal[False]:
         return False
 
 
