@@ -146,7 +146,7 @@ class MetricsSummary:
     covenant_gold: int
     covenant_rating: float
     mystics: int
-    msytic_medals: int
+    mystic_medals: int
     mystic_gold: int
     mystic_rating: float
     skystones: int
@@ -204,7 +204,7 @@ class MetricsProcessor:
             covenant_gold=covenant_gold,
             covenant_rating=covenant_rating,
             mystics=mystics,
-            msytic_medals=mystic_medals,
+            mystic_medals=mystic_medals,
             mystic_gold=mystic_gold,
             mystic_rating=mystic_rating,
             gold=gold,

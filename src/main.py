@@ -343,7 +343,9 @@ def handle_shop_refresh(args: argparse.Namespace) -> None:
     refresher.start(times=1_000)
 
 
-def build_overview_grid_data(overview: list[MetricsOverview]) -> list[list[str]]:
+def build_overview_grid_data(
+    overview: list[MetricsOverview], summary: MetricsSummary
+) -> list[list[str]]:
     headers = [
         "Date",
         "Iterations",
@@ -356,6 +358,7 @@ def build_overview_grid_data(overview: list[MetricsOverview]) -> list[list[str]]
         "SS",
         "Gold",
     ]
+
     data: list[list[str]] = [headers]
     for item in overview:
         row = [
@@ -371,6 +374,21 @@ def build_overview_grid_data(overview: list[MetricsOverview]) -> list[list[str]]
             f"{item.gold:,}",
         ]
         data.append(row)
+
+    data.append(
+        [
+            "Total",
+            str(summary.iterations),
+            str(summary.covenants),
+            str(summary.covenant_bookmarks),
+            f"{summary.covenant_rating:.2f}%",
+            str(summary.mystics),
+            str(summary.mystic_medals),
+            f"{summary.mystic_rating:.2f}%",
+            f"{summary.skystones:,}",
+            f"{summary.gold:,}",
+        ]
+    )
     return data
 
 
@@ -384,7 +402,7 @@ def build_summary_grid_data(summary: MetricsSummary) -> list[list[str]]:
         [
             "Currency",
             str(summary.covenant_bookmarks),
-            str(summary.msytic_medals),
+            str(summary.mystic_medals),
             "-",
         ],
         ["Rating", f"{covenant_rating_pct:.2f}%", f"{mystic_rating_pct:.2f}%", "_"],
@@ -414,7 +432,8 @@ def handle_metrics_head(storage: MetricsStorage, logger: Logger, head: int) -> N
 
     processor = MetricsProcessor()
     overview = processor.overview(head_metrics)
-    grid_data = build_overview_grid_data(overview)
+    summary = processor.summarize(head_metrics)
+    grid_data = build_overview_grid_data(overview, summary)
 
     grid_builder = ascii.GridBuilder()
     grid = grid_builder.build(grid_data)
@@ -436,7 +455,8 @@ def handle_metrics_tail(storage: MetricsStorage, logger: Logger, tail: int) -> N
 
     processor = MetricsProcessor()
     overview = processor.overview(tail_metrics)
-    grid_data = build_overview_grid_data(overview)
+    summary = processor.summarize(tail_metrics)
+    grid_data = build_overview_grid_data(overview, summary)
 
     grid_builder = ascii.GridBuilder()
     grid = grid_builder.build(grid_data)
