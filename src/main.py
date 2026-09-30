@@ -361,30 +361,34 @@ def build_overview_grid_data(
 
     data: list[list[str]] = [headers]
     for item in overview:
+        covenant_rating_pct = 100 * item.covenant_rating
+        mystic_rating_pct = 100 * item.mystic_rating
         row = [
             item.created_at.strftime("%Y-%m-%d"),
             str(item.iterations),
             str(item.covenants),
             str(item.covenant_bookmarks),
-            f"{item.covenant_rating:.2f}%",
+            f"{covenant_rating_pct:.2f}%",
             str(item.mystics),
             str(item.mystic_medals),
-            f"{item.mystic_rating:.2f}%",
+            f"{mystic_rating_pct:.2f}%",
             f"{item.skystones:,}",
             f"{item.gold:,}",
         ]
         data.append(row)
 
+    covenant_rating_pct = 100 * summary.covenant_rating
+    mystic_rating_pct = 100 * summary.mystic_rating
     data.append(
         [
             "Total",
             str(summary.iterations),
             str(summary.covenants),
             str(summary.covenant_bookmarks),
-            f"{summary.covenant_rating:.2f}%",
+            f"{covenant_rating_pct:.2f}%",
             str(summary.mystics),
             str(summary.mystic_medals),
-            f"{summary.mystic_rating:.2f}%",
+            f"{mystic_rating_pct:.2f}%",
             f"{summary.skystones:,}",
             f"{summary.gold:,}",
         ]
@@ -507,9 +511,12 @@ def main():
         help="Start automatically refreshing Epic Seven shop. NOTES: Epic Seven should be running and already be on the Refresh Shop screen.",
     )
     refresh_parser.add_argument(
-        "-v",
         "--verbose",
-        action="store_true",
+        nargs="?",
+        type=bool,
+        const=False,
+        default=None,
+        metavar="N",
         help="Enable verbose output with logs on DEBUG level",
     )
     refresh_parser.set_defaults(func=handle_shop_refresh)
